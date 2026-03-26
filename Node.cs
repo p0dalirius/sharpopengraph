@@ -217,6 +217,67 @@ namespace SharpOpenGraph
         }
 
         /// <summary>
+        /// Converts the node to a dictionary representation for JSON serialization.
+        /// Matches Python's to_dict() method.
+        /// </summary>
+        /// <returns>Dictionary representation of the node.</returns>
+        public Dictionary<string, object?> ToDict()
+        {
+            var result = new Dictionary<string, object?>
+            {
+                ["id"] = Id,
+                ["kinds"] = new List<string>(_kinds),
+                ["properties"] = _properties.ToDict()
+            };
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a Node from a dictionary representation.
+        /// Matches Python's from_dict() classmethod.
+        /// </summary>
+        /// <param name="data">Dictionary containing node data with keys: "id", "kinds", "properties".</param>
+        /// <returns>A new Node instance, or null if the data is invalid.</returns>
+        public static Node? FromDict(Dictionary<string, object?> data)
+        {
+            try
+            {
+                if (!data.TryGetValue("id", out var idObj) || idObj is not string id || string.IsNullOrWhiteSpace(id))
+                {
+                    return null;
+                }
+
+                var kinds = new List<string>();
+                if (data.TryGetValue("kinds", out var kindsObj) && kindsObj is IEnumerable<object?> kindsList)
+                {
+                    foreach (var k in kindsList)
+                    {
+                        if (k is string kindStr)
+                        {
+                            kinds.Add(kindStr);
+                        }
+                    }
+                }
+
+                Properties? properties = null;
+                if (data.TryGetValue("properties", out var propsObj) && propsObj is IDictionary<string, object?> propsDict)
+                {
+                    properties = new Properties();
+                    foreach (var kvp in propsDict)
+                    {
+                        properties.SetProperty(kvp.Key, kvp.Value);
+                    }
+                }
+
+                return new Node(id, kinds, properties);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current node.
         /// Two nodes are considered equal if they have the same ID.
         /// </summary>

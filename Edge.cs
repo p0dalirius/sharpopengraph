@@ -271,6 +271,99 @@ namespace SharpOpenGraph
         }
 
         /// <summary>
+        /// Converts the edge to a dictionary representation for JSON serialization.
+        /// Matches Python's to_dict() method. Omits empty properties.
+        /// </summary>
+        /// <returns>Dictionary representation of the edge.</returns>
+        public Dictionary<string, object?> ToDict()
+        {
+            var startDict = new Dictionary<string, object?>
+            {
+                ["value"] = Start.Value,
+                ["match_by"] = Start.MatchBy
+            };
+            if (Start.Kind != null)
+            {
+                startDict["kind"] = Start.Kind;
+            }
+
+            var endDict = new Dictionary<string, object?>
+            {
+                ["value"] = End.Value,
+                ["match_by"] = End.MatchBy
+            };
+            if (End.Kind != null)
+            {
+                endDict["kind"] = End.Kind;
+            }
+
+            var result = new Dictionary<string, object?>
+            {
+                ["kind"] = Kind,
+                ["start"] = startDict,
+                ["end"] = endDict
+            };
+
+            // Only include properties if non-empty (matching Python behavior)
+            if (_properties != null && _properties.Count > 0)
+            {
+                result["properties"] = _properties.ToDict();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Creates an Edge from a dictionary representation.
+        /// Matches Python's from_dict() classmethod.
+        /// </summary>
+        /// <param name="data">Dictionary containing edge data with keys: "kind", "start", "end", optionally "properties".</param>
+        /// <returns>A new Edge instance, or null if the data is invalid.</returns>
+        public static Edge? FromDict(Dictionary<string, object?> data)
+        {
+            try
+            {
+                if (!data.TryGetValue("kind", out var kindObj) || kindObj is not string kind || string.IsNullOrWhiteSpace(kind))
+                {
+                    return null;
+                }
+
+                if (!data.TryGetValue("start", out var startObj) || startObj is not IDictionary<string, object?> startDict)
+                {
+                    return null;
+                }
+                if (!data.TryGetValue("end", out var endObj) || endObj is not IDictionary<string, object?> endDict)
+                {
+                    return null;
+                }
+
+                string startValue = startDict.TryGetValue("value", out var sv) && sv is string svStr ? svStr : "";
+                string startMatchBy = startDict.TryGetValue("match_by", out var smb) && smb is string smbStr ? smbStr : "id";
+                string? startKind = startDict.TryGetValue("kind", out var sk) && sk is string skStr ? skStr : null;
+
+                string endValue = endDict.TryGetValue("value", out var ev) && ev is string evStr ? evStr : "";
+                string endMatchBy = endDict.TryGetValue("match_by", out var emb) && emb is string embStr ? embStr : "id";
+                string? endKind = endDict.TryGetValue("kind", out var ek) && ek is string ekStr ? ekStr : null;
+
+                Properties? properties = null;
+                if (data.TryGetValue("properties", out var propsObj) && propsObj is IDictionary<string, object?> propsDict)
+                {
+                    properties = new Properties();
+                    foreach (var kvp in propsDict)
+                    {
+                        properties.SetProperty(kvp.Key, kvp.Value);
+                    }
+                }
+
+                return new Edge(startValue, endValue, kind, properties, startMatchBy, endMatchBy, startKind, endKind);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current edge.
         /// Two edges are considered equal if they have the same start, end, and kind.
         /// </summary>

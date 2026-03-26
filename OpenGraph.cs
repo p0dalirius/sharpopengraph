@@ -740,7 +740,7 @@ namespace SharpOpenGraph
             try
             {
                 using var doc = JsonDocument.Parse(jsonData);
-                return ImportFromDict(doc.RootElement);
+                return ImportFromJsonElement(doc.RootElement);
             }
             catch (Exception)
             {
@@ -785,11 +785,31 @@ namespace SharpOpenGraph
         }
 
         /// <summary>
+        /// Loads graph data from a dictionary.
+        /// Matches Python's import_from_dict() method.
+        /// </summary>
+        /// <param name="data">Dictionary containing graph data with "graph" and optional "metadata" keys.</param>
+        /// <returns>True if load was successful, False otherwise.</returns>
+        public bool ImportFromDict(Dictionary<string, object> data)
+        {
+            try
+            {
+                // Convert to JSON and re-parse through the JsonElement path for consistency
+                string json = JsonSerializer.Serialize(data);
+                return ImportFromJson(json);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Loads graph data from a JsonElement (typically from JSON).
         /// </summary>
         /// <param name="data">JsonElement containing graph data.</param>
         /// <returns>True if load was successful, False otherwise.</returns>
-        private bool ImportFromDict(JsonElement data)
+        private bool ImportFromJsonElement(JsonElement data)
         {
             try
             {
